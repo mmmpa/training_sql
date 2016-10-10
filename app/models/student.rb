@@ -100,6 +100,23 @@ class Student < ApplicationRecord
       .group(arel_table[:id])
   }
 
+  scope :point_list1, -> {
+    includes(:results)
+  }
+
+  scope :point_list2, -> {
+    eager_load(:results)
+  }
+
+  scope :point_list3, -> {
+    joins(:results)
+  }
+
+  scope :point_deploy, -> {
+    select('array_agg(results.point) as point')
+      .group(arel_table[:id])
+  }
+
   def grades
     category_grades = [name, kind, grade]
   end
@@ -149,6 +166,20 @@ class Student < ApplicationRecord
       each_grade4.all.each do |s|
         p s.results.map(&:grade2)
       end.size
+    end
+
+    def point1
+      point_list1.map do |r|
+        r.results.map(&:point)
+      end
+    end
+
+    def point2
+      point_list3.point_deploy
+    end
+
+    def point3
+      point_list3.point_deploy
     end
   end
 end
