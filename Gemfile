@@ -10,7 +10,6 @@ gem 'coffee-rails', '~> 4.2'
 
 gem 'jbuilder', '~> 2.5'
 
-
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug', platform: :mri
@@ -44,6 +43,7 @@ group :development, :test do
   gem 'tanemaki'
   gem 'spring-commands-rspec'
   gem 'factory_girl_rails'
+  gem 'faker'
 end
 
 group :development do
@@ -61,7 +61,6 @@ group :test do
   gem 'capybara'
   gem 'codeclimate-test-reporter'
   gem 'coveralls'
-  gem 'faker'
   gem 'poltergeist'
   gem 'rspec'
   gem 'rspec-rails'
