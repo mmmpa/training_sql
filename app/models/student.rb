@@ -8,6 +8,7 @@
 #  city       :string
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
+#  birth_day  :datetime
 #
 
 class Student < ApplicationRecord
@@ -18,6 +19,68 @@ class Student < ApplicationRecord
   scope :with_results, -> {
     eager_load(:results)
   }
+
+  scope :birth_months, -> {
+    select(%q{to_char(birth_day, 'YYYY-MM') as birth_month, sum(1) as birth_counter})
+      .from("(#{select('students.*').limit(1000).to_sql}) students")
+  }
+
+  scope :birth_months2, -> {
+    select(%q{to_char(birth_day, 'YYYY-MM') as birth_month})
+  }
+
+  scope :month_birth, -> (m) {
+    where(mm: m)
+      .from(%Q{
+       (#{select(%q{*, to_char(birth_day, 'MM') as mm}).to_sql}) students
+      })
+  }
+
+  scope :year_birth, -> (y) {
+    where(yyyy: y)
+      .from(%Q{
+       (#{select(%q{*, to_char(birth_day, 'YYYY') as yyyy}).to_sql}) students
+      })
+  }
+
+  scope :year_birth2, -> (y) {
+    where(%Q{to_date('#{y}-01-01', 'YYYY-MM-DD') <= birth_day AND birth_day <= to_date('#{y}-12-31', 'YYYY-MM-DD')})
+  }
+
+  scope :year_birth3, -> (y) {
+    where(%Q{to_char(birth_day, 'YYYY') = ? }, y.to_s)
+  }
+
+  def self.birth_month1
+    p limit(1000).select(%q{to_char(birth_day, 'YYYY-MM') as birth_month}).order('birth_month').group('birth_month').to_a.size
+    p limit(1000).birth_months.group('birth_month').to_a.size
+    p limit(1000).select(%q{to_char(birth_day, 'YYYY-MM') as birth_month}).order('birth_month').group('birth_month').map(&:birth_month)
+    p limit(1000).birth_months2.group_by { |s| s.birth_month }.map { |k, v| k }
+    p limit(1000).birth_months2.group_by { |s| s.birth_month }.size
+    p limit(1000).birth_months2.group_by { |s| s.birth_month }.map { |k, v| v.size }
+    p :last
+    p limit(1000).birth_months.group('birth_month').map(&:birth_counter)
+  end
+
+  def self.birth_months_list
+    birth_months2.distinct.order('birth_month').map(&:birth_month)
+  end
+
+  def self.in_month
+    month_birth(11).to_a.size
+  end
+
+  def self.in_year
+    year_birth(rand(2009..2015)).to_a.size
+  end
+
+  def self.in_year2
+    year_birth2(rand(2009..2015)).to_a.size
+  end
+
+  def self.in_year3
+    year_birth3(rand(2009..2015)).to_a.size
+  end
 
   scope :descriptions, -> {
     joins(:results)
