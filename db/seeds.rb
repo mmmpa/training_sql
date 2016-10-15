@@ -6,21 +6,35 @@
 #   movies = Movie.create([{ name: 'Star Wars' }, { name: 'Lord of the Rings' }])
 #   Character.create(name: 'Luke', movie: movies.first)
 
-total = 100000
-kinds = %w(国語 理科 数学 英語)
+if ENV['TOO_MAY_STUDENT']
+  total = 100000
+  kinds = %w(国語 理科 数学 英語)
 
-total.times do
-  student = Student.create(
-    name: Faker::Name.first_name,
-    email: Faker::Internet.email,
-    city: Faker::Address.city
-  )
+  total.times do
+    student = Student.create(
+      name: Faker::Name.first_name,
+      email: Faker::Internet.email,
+      city: Faker::Address.city
+    )
 
-  kinds.each do |name|
-    Result.create(
-      student: student,
-      name: name,
-      point: rand(0..100)
+    kinds.each do |name|
+      Result.create(
+        student: student,
+        name: name,
+        point: rand(0..100)
+      )
+    end
+  end
+end
+
+if ENV['FRIEND_SHIP']
+  total = 1000000
+  ids = Student.ids
+
+  total.times do
+    FriendShip.create(
+      owner_id: ids.sample,
+      ownee_id: ids.sample
     )
   end
 end

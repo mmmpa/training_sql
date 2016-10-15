@@ -13,6 +13,8 @@
 
 class Student < ApplicationRecord
   has_many :results, inverse_of: :student
+  has_many :friend_ships, foreign_key: :owner_id
+  has_many :friends, through: :friend_ships, source: :ownee
 
   attr_accessor :category_grades
 
@@ -51,6 +53,56 @@ class Student < ApplicationRecord
     where(%Q{to_char(birth_day, 'YYYY') = ? }, y.to_s)
   }
 
+
+  scope :year_birth4, -> (y) {
+    where(%Q{yyyy = ? }, y.to_s)
+      .from(%Q{
+       (#{select(%q{*, to_char(birth_day, 'YYYY') as yyyy}).to_sql}) students
+      })
+  }
+
+  scope :born_in_year, -> (year) {
+    where(%q{ birth_day >= ? AND birth_day < ? }, Date.new(year, 1, 1), Date.new(year + 1, 1, 1))
+  }
+
+  scope :born_in_year2, -> (year) {
+    where(%q{ to_char(birth_day, 'YYYY') = ? }, year.to_s)
+  }
+
+  scope :total_score, -> (min) {
+    joins(:results)
+      .where(%q{ results.point >= ?}, min)
+  }
+
+  scope :has_friend_in_year, ->(year) {
+    joins(:friends)
+    .where(%q{ friends_students.birth_day >= ? AND friends_students.birth_day < ? }, Date.new(year, 1, 1), Date.new(year + 1, 1, 1))
+    .distinct
+  }
+
+  def self.friend_test
+    # ActiveRecord::Base.logger = nil
+    a = 0
+    b = 0
+    100.times do |n|
+      year = rand(1999..2016)
+      a += Benchmark.realtime { where(id: has_friend_in_year(year).select(:id)).born_in_year(year).count }
+      b += Benchmark.realtime { where(id: has_friend_in_year(year).pluck(:id)).born_in_year(year).count }
+    end
+    p [a / 100, b / 100]
+  end
+
+  def self.bench_year
+    a = 0
+    b = 0
+    100.times do |n|
+      year = rand(1999..2016)
+      a += Benchmark.realtime { born_in_year(year).to_a }
+      b += Benchmark.realtime { born_in_year2(year).to_a }
+    end
+    p [a / 100, b / 100]
+  end
+
   def self.birth_month1
     p limit(1000).select(%q{to_char(birth_day, 'YYYY-MM') as birth_month}).order('birth_month').group('birth_month').to_a.size
     p limit(1000).birth_months.group('birth_month').to_a.size
@@ -80,6 +132,10 @@ class Student < ApplicationRecord
 
   def self.in_year3
     year_birth3(rand(2009..2015)).to_a.size
+  end
+
+  def self.in_year4
+    year_birth4(rand(2009..2015)).to_a.size
   end
 
   scope :descriptions, -> {
