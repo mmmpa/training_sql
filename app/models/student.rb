@@ -9,6 +9,7 @@
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
 #  birth_day  :datetime
+#  last_day   :datetime
 #
 
 class Student < ApplicationRecord
@@ -69,16 +70,109 @@ class Student < ApplicationRecord
     where(%q{ to_char(birth_day, 'YYYY') = ? }, year.to_s)
   }
 
-  scope :total_score, -> (min) {
+  scope :any_score, -> (min) {
     joins(:results)
       .where(%q{ results.point >= ?}, min)
+      .distinct
+  }
+
+  scope :total_point, -> {
+    joins(:results)
+      .select('students.*, sum(results.point) as total_point')
+      .group(arel_table[:id])
+  }
+
+  scope :clear_point, -> (n) {
+    joins(:results)
+      .select(%Q{ students.*, case when total_point > #{n} then total_point else '0' end as total_point2 }, n)
+      .from(%Q{ (#{total_point.to_sql}) students })
+      .distinct
+      .order('total_point2 desc')
+  }
+
+  scope :clear_point2, -> (n) {
+    joins(:results)
+      .select(%Q{ students.*, case when sum(results.point) > #{n} then sum(results.point) else '0' end as total_point }, n)
+      .group(arel_table[:id])
+      .distinct
+      .order('total_point desc')
+  }
+
+  scope :total_point2, -> (min) {
+    total_point
+      .where(%q{total_point >= ?}, min)
+  }
+
+  scope :total_point3, -> (min) {
+    joins(:results)
+      .where(%q{ sum(results.point) >= ?}, min)
+      .group(arel_table[:id])
+  }
+
+  scope :total_point4, -> (min) {
+    where(%q{ total_point >= ?}, min)
+      .from(%Q{ (#{total_point.to_sql}) students })
   }
 
   scope :has_friend_in_year, ->(year) {
     joins(:friends)
-    .where(%q{ friends_students.birth_day >= ? AND friends_students.birth_day < ? }, Date.new(year, 1, 1), Date.new(year + 1, 1, 1))
-    .distinct
+      .where(%q{ friends_students.birth_day >= ? AND friends_students.birth_day < ? }, Date.new(year, 1, 1), Date.new(year + 1, 1, 1))
+      .distinct
   }
+
+  def self.sum_test
+    any_score(100)
+  end
+
+  def self.sum_test1
+    total_point.select { |s| s.total_point > 380 }.map(&:total_point)
+  end
+
+  def self.sum_test2
+    total_point2(300)
+  end
+
+  def self.sum_test3
+    total_point3(300)
+  end
+
+  def self.sum_test4
+    total_point4(380)
+  end
+
+  def self.sum_test5
+    # ActiveRecord::Base.logger = nil
+    times = 10
+    a = 0
+    b = 0
+    times.times do |n|
+      if (n % 2) == 0
+        a += Benchmark.realtime { clear_point(380).to_a }
+        b += Benchmark.realtime { clear_point2(380).to_a }
+      else
+        b += Benchmark.realtime { clear_point2(380).to_a }
+        a += Benchmark.realtime { clear_point(380).to_a }
+      end
+    end
+    p [a / times, b / times]
+  end
+
+  def self.sum_test6
+    # ActiveRecord::Base.logger = nil
+    times = 10
+    a = 0
+    b = 0
+    times.times do |n|
+      if (n % 2) == 0
+        a += Benchmark.realtime { total_point.select { |s| s.total_point > 380 }.map(&:total_point) }
+        b += Benchmark.realtime { total_point4(380).map(&:total_point) }
+      else
+        b += Benchmark.realtime { total_point4(380).map(&:total_point) }
+        a += Benchmark.realtime { total_point.select { |s| s.total_point > 380 }.map(&:total_point) }
+      end
+    end
+    p [a / times, b / times]
+  end
 
   def self.friend_test
     # ActiveRecord::Base.logger = nil
@@ -300,5 +394,37 @@ class Student < ApplicationRecord
     def point3
       point_list3.point_deploy
     end
+  end
+
+  def self.null_order
+    times = 100
+    a = 0
+    b = 0
+    times.times do |n|
+      if (n % 2) == 0
+        a += Benchmark.realtime { order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+        b += Benchmark.realtime { order('last_day DESC NULLS LAST').first }
+      else
+        b += Benchmark.realtime { order('last_day DESC NULLS LAST').first }
+        a += Benchmark.realtime { order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+      end
+    end
+    p [a / times, b / times]
+  end
+
+  def self.null_order2
+    times = 100
+    a = 0
+    b = 0
+    times.times do |n|
+      if (n % 2) == 0
+        a += Benchmark.realtime { order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+        b += Benchmark.realtime { order('last_day DESC').first }
+      else
+        b += Benchmark.realtime { order('last_day DESC').first }
+        a += Benchmark.realtime { order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+      end
+    end
+    p [a / times, b / times]
   end
 end

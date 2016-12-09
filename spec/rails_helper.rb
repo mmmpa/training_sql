@@ -97,4 +97,23 @@ RSpec.configure do |config|
   config.filter_rails_from_backtrace!
   # arbitrary gems may also be filtered via:
   # config.filter_gems_from_backtrace("gem name")
+
+  require 'webrick'
+  config.before(:all) do
+    @port = ENV['PORT'] || 3031
+    @host = ENV['HOST'] || '127.0.0.1'
+    @base = "http://#{@host}:#{@port}"
+    Thread.start {
+      WEBrick::HTTPServer.new(
+        DocumentRoot: File.expand_path('./fixtures/', __dir__),
+        BindAddress: @host,
+        Port: @port,
+        AccessLog: [],
+        Logger: WEBrick::Log::new("/dev/null", 7)
+      ).tap do |server|
+        Signal.trap(:INT) { server.shutdown }
+        puts server.start
+      end
+    }
+  end
 end

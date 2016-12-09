@@ -10,6 +10,14 @@ gem 'coffee-rails', '~> 4.2'
 
 gem 'jbuilder', '~> 2.5'
 
+gem 'a_r_q_logger', require: false
+gem 'siege_siege'
+gem 'poltergeist'
+gem 'capybara'
+gem 'webmock'
+gem 'rest-client'
+gem 'mysql2'
+
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug', platform: :mri
@@ -26,45 +34,34 @@ end
 
 gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 
-group :default do
-  gem 'authlogic'
-  gem 'jquery-rails'
-  gem 'kaminari'
-  gem 'slim-rails'
-  gem 'sweet-alert-confirm'
-  gem 'therubyracer'
-  gem 'html2slim'
-  gem 'brakeman', require: false
-  gem 'rubocop', require: false
-  gem 'metric_fu', require: false
-end
-
-group :development, :test do
-  gem 'tanemaki'
-  gem 'spring-commands-rspec'
-  gem 'factory_girl_rails'
-  gem 'faker'
-end
-
-group :development do
-  gem 'bullet'
-  gem 'annotate'
-  gem 'awesome_print'
-  gem 'hirb'
-  gem 'hirb-unicode'
-  gem 'pry-rails'
-  gem 'pry-byebug'
-  gem 'rails_best_practices'
-end
-
-group :test do
-  gem 'capybara'
-  gem 'codeclimate-test-reporter'
-  gem 'coveralls'
-  gem 'poltergeist'
-  gem 'rspec'
-  gem 'rspec-rails'
-  gem 'rspec-html-matchers'
-  gem 'simplecov'
-  gem 'simplecov-rcov'
-end
+gem 'authlogic'
+gem 'jquery-rails'
+gem 'kaminari'
+gem 'slim-rails'
+gem 'sweet-alert-confirm'
+gem 'therubyracer'
+gem 'html2slim'
+gem 'brakeman', require: false
+gem 'rubocop', require: false
+gem 'metric_fu', require: false
+gem 'tanemaki'
+gem 'spring-commands-rspec'
+gem 'factory_girl_rails'
+gem 'faker'
+gem 'bullet'
+gem 'annotate'
+gem 'awesome_print'
+gem 'hirb'
+gem 'hirb-unicode'
+gem 'pry-rails'
+gem 'pry-byebug'
+gem 'rails_best_practices'
+gem 'capybara'
+gem 'codeclimate-test-reporter'
+gem 'coveralls'
+gem 'poltergeist'
+gem 'rspec'
+gem 'rspec-rails'
+gem 'rspec-html-matchers'
+gem 'simplecov'
+gem 'simplecov-rcov'
