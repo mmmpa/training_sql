@@ -50,3 +50,11 @@ if ENV['LAST_DAY']
   end
 end
 
+if ENV['LOST_FRIENDS']
+  Student.find_each do |s|
+    if rand(0..1) == 1
+      s.friend_ships.delete_all
+    else
+    end
+  end
+end

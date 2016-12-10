@@ -401,12 +401,30 @@ class Student < ApplicationRecord
     a = 0
     b = 0
     times.times do |n|
+      start = Time.at(rand(0..DateTime.now.to_i)).strftime('%Y-%m-%d %H:%M:%S')
       if (n % 2) == 0
-        a += Benchmark.realtime { order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
-        b += Benchmark.realtime { order('last_day DESC NULLS LAST').first }
+        a += Benchmark.realtime { where("students.last_day > '#{start}'").order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+        b += Benchmark.realtime { where("students.last_day > '#{start}'").order('last_day DESC NULLS LAST').first }
       else
-        b += Benchmark.realtime { order('last_day DESC NULLS LAST').first }
-        a += Benchmark.realtime { order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+        b += Benchmark.realtime { where("students.last_day > '#{start}'").order('last_day DESC NULLS LAST').first }
+        a += Benchmark.realtime { where("students.last_day > '#{start}'").order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+      end
+    end
+    p [a / times, b / times]
+  end
+
+  def self.null_order1_2
+    times = 100
+    a = 0
+    b = 0
+    times.times do |n|
+      offset = rand(0..10000)
+      if (n % 2) == 0
+        a += Benchmark.realtime { offset(offset).order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+        b += Benchmark.realtime { offset(offset).order('last_day DESC NULLS LAST').first }
+      else
+        b += Benchmark.realtime { offset(offset).order('last_day DESC NULLS LAST').first }
+        a += Benchmark.realtime { offset(offset).order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
       end
     end
     p [a / times, b / times]
@@ -417,14 +435,100 @@ class Student < ApplicationRecord
     a = 0
     b = 0
     times.times do |n|
+      start = Time.at(rand(0..DateTime.now.to_i)).strftime('%Y-%m-%d %H:%M:%S')
       if (n % 2) == 0
-        a += Benchmark.realtime { order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
-        b += Benchmark.realtime { order('last_day DESC').first }
+        a += Benchmark.realtime { where("students.last_day > '#{start}'").order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+        b += Benchmark.realtime { where("students.last_day > '#{start}'").order('last_day DESC').first }
       else
-        b += Benchmark.realtime { order('last_day DESC').first }
-        a += Benchmark.realtime { order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+        b += Benchmark.realtime { where("students.last_day > '#{start}'").order('last_day DESC').first }
+        a += Benchmark.realtime { where("students.last_day > '#{start}'").order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
       end
     end
     p [a / times, b / times]
   end
+
+  def self.null_order2_2
+    times = 100
+    a = 0
+    b = 0
+    times.times do |n|
+      offset = rand(0..10000)
+      if (n % 2) == 0
+        a += Benchmark.realtime { offset(offset).order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+        b += Benchmark.realtime { offset(offset).order('last_day DESC').first }
+      else
+        b += Benchmark.realtime { offset(offset).order('last_day DESC').first }
+        a += Benchmark.realtime { offset(offset).order(%q{CASE WHEN students.last_day IS NULL THEN '1970-01-01 00:00:00' ELSE students.last_day END DESC}).first }
+      end
+    end
+    p [a / times, b / times]
+  end
+
+  scope :all_friend_join1, ->() {
+    joins('LEFT OUTER JOIN friend_ships ON students.id = friend_ships.owner_id')
+      .joins('LEFT OUTER JOIN students friends ON friends.id = friend_ships.ownee_id')
+      .select('MAX(friends.birth_day) as max_birth_day')
+      .group(arel_table[:id])
+      .order('max_birth_day desc NULLS LAST')
+  }
+
+  scope :all_friend_join2, ->() {
+    joins('LEFT OUTER JOIN friend_ships ON students.id = friend_ships.owner_id')
+      .joins('LEFT OUTER JOIN students friends ON friends.id = friend_ships.ownee_id')
+      .select(%q{COALESCE(MAX(friends.birth_day), '1979-01-01 00:00:00') as max_birth_day})
+      .group(arel_table[:id])
+      .order('max_birth_day desc')
+  }
+
+  scope :all_friend_join3, ->() {
+    joins('LEFT OUTER JOIN friend_ships ON students.id = friend_ships.owner_id')
+      .joins('LEFT OUTER JOIN students friends ON friends.id = friend_ships.ownee_id')
+      .select('MAX(friends.birth_day) as max_birth_day')
+      .group(arel_table[:id])
+      .order(%q{CASE WHEN MAX(friends.birth_day) IS NULL THEN '1970-01-01 00:00:00' ELSE MAX(friends.birth_day) END DESC})
+  }
+
+  def self.null_order3
+    times = 100
+    a = 0
+    b = 0
+    times.times do |n|
+      offset = rand(0..10000)
+      if (n % 2) == 0
+        a += Benchmark.realtime { pre_limit.offset(offset).all_friend_join1.first }
+        b += Benchmark.realtime { pre_limit.offset(offset).all_friend_join2.first }
+      else
+        b += Benchmark.realtime { pre_limit.offset(offset).all_friend_join2.first }
+        a += Benchmark.realtime { pre_limit.offset(offset).all_friend_join1.first }
+      end
+    end
+    p [a / times, b / times]
+  end
+
+  def self.null_order4
+    times = 10
+    a = 0
+    b = 0
+    c = 0
+    times.times do |n|
+      offset = rand(0..10000)
+      if (n % 2) == 0
+        a += Benchmark.realtime { pre_limit.offset(offset).all_friend_join1.first }
+        b += Benchmark.realtime { pre_limit.offset(offset).all_friend_join2.first }
+        c += Benchmark.realtime { pre_limit.offset(offset).all_friend_join3.first }
+      else
+        b += Benchmark.realtime { pre_limit.offset(offset).all_friend_join2.first }
+        c += Benchmark.realtime { pre_limit.offset(offset).all_friend_join3.first }
+        a += Benchmark.realtime { pre_limit.offset(offset).all_friend_join1.first }
+      end
+    end
+    p [a / times, b / times, c / times]
+  end
+
+
+  scope :pre_limit, -> {
+    from("(#{select('students.*').limit(100000).to_sql}) students")
+  }
+
+
 end
